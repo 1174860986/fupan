@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>复盘官</title>
+<style>
+body { font-family: Arial; background:#111; color:#fff; padding:20px; }
+button { padding:15px; font-size:18px; margin-top:20px; }
+#result { margin-top:20px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<h2>直播复盘官</h2>
+
+<button onclick="startRecognition()"> 开始语音复盘</button>
+
+<div id="result"></div>
+
+<script>
+const API_KEY = "app-PqaerVjymIzMfj6bRV4WP4XZ";
+const API_URL = "https://api.dify.ai/v1/workflows/run";
+
+function startRecognition() {
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = 'zh-CN';
+
+  recognition.onresult = async function(event) {
+    const text = event.results[0][0].transcript;
+    document.getElementById("result").innerText = "你说：\n" + text + "\n\n分析中...";
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        inputs: {
+          query: text
+        },
+        response_mode: "blocking",
+        user: "mobile-user"
+      })
+    });
+
+    const data = await response.json();
+    const answer = data.data.outputs.text || "未获取到回复";
+
+    document.getElementById("result").innerText = "复盘结果：\n\n" + answer;
+
+    const speech = new SpeechSynthesisUtterance(answer);
+    speech.lang = "zh-CN";
+    window.speechSynthesis.speak(speech);
+  };
+
+  recognition.start();
+}
+</script>
+
+</body>
+</html>
