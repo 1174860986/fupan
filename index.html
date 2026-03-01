@@ -288,7 +288,8 @@ ${currentInput}
 async function callDify(promptText){
 
   const payload = {
-    inputs: { text: promptText },   // 
+  text: promptText
+};
     response_mode: "blocking",
     user: "mobile-user"
   };
@@ -454,6 +455,7 @@ deleteSessionBtn.onclick = () => {
 </script>
 </body>
 </html>
+
 
 
 
