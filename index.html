@@ -285,37 +285,39 @@ ${currentInput}
 /** =======================
  *  8) 调 Dify Workflow
  *  ======================= */
-async function callDify(promptText){
-
+async function callDify(promptText) {
+  //  这里保证 text 一定存在
   const payload = {
-  text: promptText,
-  response_mode: "blocking",
-  user: "mobile-user"
-};
+    text: String(promptText || "").trim()
+  };
 
+  // 可选：本地先看一下到底发了啥
+  console.log("payload =>", payload);
 
   const res = await fetch(API_URL, {
     method: "POST",
     headers: {
-      "Authorization": "Bearer " + API_KEY,
       "Content-Type": "application/json"
+      //  如果你的 FC 接口不需要 Authorization，就别加
+      // "Authorization": "Bearer " + API_KEY,
     },
     body: JSON.stringify(payload)
   });
 
   const raw = await res.text();
-  if(!res.ok){
+  if (!res.ok) {
     throw new Error(`HTTP ${res.status}\n${raw}`);
   }
 
   let json;
-  try { json = JSON.parse(raw); } 
-  catch { throw new Error("返回非 JSON"); }
+  try { json = JSON.parse(raw); } catch { json = { raw }; }
 
+  // 兼容你 FC 的返回结构：{ ok, answer, raw }
   const out =
-    json?.data?.outputs?.text ||
-    json?.answer ||
-    json?.data?.answer ||
+    json.answer ??
+    json.text ??
+    json?.raw?.answer ??
+    json?.raw?.data?.outputs?.text ??
     "";
 
   return out;
@@ -455,6 +457,7 @@ deleteSessionBtn.onclick = () => {
 </script>
 </body>
 </html>
+
 
 
 
