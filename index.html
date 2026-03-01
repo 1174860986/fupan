@@ -288,11 +288,11 @@ ${currentInput}
 async function callDify(promptText){
 
   const payload = {
-  text: promptText
+  text: promptText,
+  response_mode: "blocking",
+  user: "mobile-user"
 };
-    response_mode: "blocking",
-    user: "mobile-user"
-  };
+
 
   const res = await fetch(API_URL, {
     method: "POST",
@@ -455,6 +455,7 @@ deleteSessionBtn.onclick = () => {
 </script>
 </body>
 </html>
+
 
 
 
