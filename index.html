@@ -286,8 +286,9 @@ ${currentInput}
  *  8) 调 Dify Workflow
  *  ======================= */
 async function callDify(promptText){
+
   const payload = {
-    inputs: { query: promptText },
+    inputs: { text: promptText },   // 
     response_mode: "blocking",
     user: "mobile-user"
   };
@@ -305,17 +306,16 @@ async function callDify(promptText){
   if(!res.ok){
     throw new Error(`HTTP ${res.status}\n${raw}`);
   }
- // Dify workflow 常见返回：{ data: { outputs: { text: "..." } } }
+
   let json;
-  try { json = JSON.parse(raw); } catch { throw new Error("返回不是JSON：" + raw); }
+  try { json = JSON.parse(raw); } 
+  catch { throw new Error("返回非 JSON"); }
 
   const out =
     json?.data?.outputs?.text ||
     json?.answer ||
     json?.data?.answer ||
     "";
-
-  if(!out) throw new Error("接口无输出字段（请检查 Dify workflow 的输出变量名是否为 text）。\n" + raw);
 
   return out;
 }
@@ -454,6 +454,7 @@ deleteSessionBtn.onclick = () => {
 </script>
 </body>
 </html>
+
 
 
 
