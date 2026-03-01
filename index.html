@@ -22,10 +22,19 @@ const API_KEY = "app-PqaerVjymIzMfj6bRV4WP4XZ";
 const API_URL = "https://api.dify.ai/v1/workflows/run";
 
 function startRecognition() {
-  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-  recognition.lang = 'zh-CN';
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    alert("当前浏览器不支持语音识别，请使用Chrome");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "zh-CN";
 
   recognition.onresult = async function(event) {
+
     const text = event.results[0][0].transcript;
     document.getElementById("result").innerText = "你说：\n" + text + "\n\n分析中...";
 
@@ -36,9 +45,7 @@ function startRecognition() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        inputs: {
-          query: text
-        },
+        inputs: { query: text },
         response_mode: "blocking",
         user: "mobile-user"
       })
@@ -61,3 +68,4 @@ function startRecognition() {
 </body>
 
 </html>
+
