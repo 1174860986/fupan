@@ -2,167 +2,458 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>直播复盘官</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0b0b0b; color:#fff; padding:18px;}
-    button{font-size:16px; padding:10px 14px; border-radius:10px; border:0;}
-    .box{margin-top:14px; white-space:pre-wrap; line-height:1.6;}
-    input{width:100%; font-size:16px; padding:10px; border-radius:10px; border:1px solid #333; background:#111; color:#fff; margin-top:10px;}
-    .hint{opacity:.75; font-size:13px; margin-top:8px;}
+    :root { color-scheme: dark; }
+    body { margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial; background:#0b0b0b; color:#fff; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 18px 16px 40px; }
+    h1 { margin: 6px 0 14px; font-size: 34px; }
+    .card { background:#111; border:1px solid #222; border-radius:14px; padding:14px; margin: 12px 0; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .btn { background:#e9eef8; color:#111; border:none; border-radius:12px; padding:12px 14px; font-size:16px; font-weight:600; cursor:pointer; }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+    .btn2 { background:#1f6feb; color:#fff; }
+    .btn3 { background:#2a2a2a; color:#fff; border:1px solid #3a3a3a; }
+    input, textarea, select {
+      width:100%; box-sizing:border-box; border-radius:12px; border:1px solid #2a2a2a;
+      background:#0d0d0d; color:#fff; padding:12px 12px; font-size:15px;
+    }
+    textarea { min-height: 92px; resize: vertical; }
+    label { font-size: 13px; color:#bdbdbd; display:block; margin: 8px 0 6px; }
+    .muted{ color:#bdbdbd; font-size: 13px; line-height:1.5; }
+    .log {
+      background:#070707; border:1px solid #222; border-radius:14px;
+      padding: 12px; min-height: 240px; max-height: 58vh; overflow:auto; white-space: pre-wrap;
+      line-height:1.65;
+    }
+    .split { display:grid; grid-template-columns: 1.2fr .8fr; gap:12px; }
+    @media (max-width: 880px){ .split { grid-template-columns: 1fr; } }
+    .pill { display:inline-block; padding:4px 10px; border-radius:999px; border:1px solid #2a2a2a; color:#cfcfcf; font-size:12px; }
+    .kpi { display:flex; gap:10px; flex-wrap:wrap; }
+    .kpi .pill { background:#0d0d0d; }
   </style>
 </head>
 <body>
-  <h2>直播复盘官</h2>
+  <div class="wrap">
+    <h1>直播复盘官</h1>
 
-  <button id="startBtn">开始语音复盘</button>
-  <div class="hint">如果你用的是 iPhone（或 iOS 的 Chrome），大概率不支持语音识别，会自动切到“文字输入”。</div>
+    <div class="card">
+      <div class="kpi">
+        <span class="pill" id="statusPill">状态：就绪</span>
+        <span class="pill" id="sessionPill">会话日期：<b id="sessionDateText"></b></span>
+        <span class="pill">自动保存：已开启</span>
+      </div>
 
-  <input id="textInput" placeholder="（备选）直接打字：例如 今天3小时 峰值60 收入370 菜单xx 空刷xx" />
-  <button id="sendBtn" style="margin-top:10px;">发送文字复盘</button>
+      <div class="split" style="margin-top:12px;">
+        <div>
+          <label>我的人设（永久保存，可随时改）</label>
+          <textarea id="persona" placeholder="例如：高冷但有边界的主播，输出建议要保持偶像感、不撒娇、不暧昧引导。"></textarea>
 
-  <div id="result" class="box"></div>
+          <label>核心消费人群（永久保存，可随时改）</label>
+          <textarea id="audience" placeholder="例如：偏理性、愿为内容付费的常驻粉；或：喜欢壁纸/陪伴的轻礼物用户等。"></textarea>
+
+          <div class="row" style="margin-top:10px;">
+            <button class="btn3" id="saveMetaBtn">保存人设/人群</button>
+            <button class="btn3" id="clearMetaBtn">清空人设/人群</button>
+          </div>
+
+          <div class="muted" style="margin-top:10px;">
+            说明：iPhone / iOS 的 Chrome 基本不支持 Web Speech 语音识别，所以你可以直接用“文字复盘”。安卓 Chrome 支持语音识别，但要允许麦克风权限。
+          </div>
+
+          <label style="margin-top:12px;">本场直播数据/复盘素材（语音识别会自动填，也可直接打字）</label>
+          <textarea id="inputText" placeholder="例如：今天直播3小时，峰值60人，收入370；中间冷场2次；空刷集中在2个人..."></textarea>
+ <div class="row" style="margin-top:10px;">
+            <button class="btn btn2" id="voiceBtn">开始语音复盘</button>
+            <button class="btn btn2" id="sendTextBtn">发送文字复盘</button>
+            <button class="btn3" id="stopBtn" disabled>停止监听</button>
+          </div>
+        </div>
+
+        <div>
+          <label>历史会话存档</label>
+          <div class="row">
+            <input type="date" id="datePicker" />
+            <button class="btn3" id="loadByDateBtn">加载</button>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <button class="btn3" id="loadYesterdayBtn">一键加载前一天</button>
+            <button class="btn3" id="loadBeforeYesterdayBtn">一键加载大前天</button>
+          </div>
+          <div class="muted" style="margin-top:10px;">下面列表会显示你保存过的日期，点一下直接加载。</div>
+          <div class="card" style="padding:10px; margin-top:10px;">
+            <div id="sessionList" class="muted">暂无历史</div>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <button class="btn3" id="newSessionBtn">新建今天会话（不覆盖旧的）</button>
+            <button class="btn3" id="deleteSessionBtn">删除当前会话</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>复盘聊天记录（永久固定展示，不会跳走/清空）</label>
+      <div id="log" class="log"></div>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn3" id="copyBtn">复制本页聊天记录</button>
+        <button class="btn3" id="clearBtn">清空本页显示（不删历史存档）</button>
+      </div>
+    </div>
+  </div>
 
 <script>
-  // ====== 你只需要改这里两行 ======
-  const API_KEY = "app-PqaerVjymIzMfj6bRV4WP4XZ";
-  const MODE = "chat"; // 选 "chat" 或 "workflow"
-  // =================================
+/** =======================
+ *  1) 这里改成你的 Dify Key & URL
+ *  ======================= */
+const API_KEY = "app-PqaerVjymIzMfj6bRV4WP4XZ";
+const API_URL = "https://api.dify.ai/v1/chat-messages"; // 如果你用的是 Chat App，就要换成 /chat-messages
 
-  // chat 模式接口（对话型应用 / Chat App）
-  const CHAT_URL = "https://api.dify.ai/v1/chat-messages";
-  // workflow 模式接口（工作流应用 / Workflow App）
-  const WORKFLOW_URL = "https://api.dify.ai/v1/workflows/run";
+/** =======================
+ *  2) 本地存储 Key
+ *  ======================= */
+const LS_META = "fupan_meta_v1";
+const LS_SESSIONS = "fupan_sessions_v1"; // { "YYYY-MM-DD": { log, updatedAt } }
+const LS_CURRENT_DATE = "fupan_current_date_v1";
 
-  const $ = (id) => document.getElementById(id);
-  const startBtn = $("startBtn");
-  const sendBtn  = $("sendBtn");
-  const resultEl = $("result");
-  const textInput = $("textInput");
+/** =======================
+ *  3) DOM
+ *  ======================= */
+const $ = (id) => document.getElementById(id);
+const statusPill = $("statusPill");
+const sessionDateText = $("sessionDateText");
+const logEl = $("log");
+const inputTextEl = $("inputText");
+const personaEl = $("persona");
+const audienceEl = $("audience");
 
-  function log(msg){ resultEl.innerText = msg; }
-  function append(msg){ resultEl.innerText += "\n" + msg; }
+const voiceBtn = $("voiceBtn");
+const stopBtn = $("stopBtn");
+const sendTextBtn = $("sendTextBtn");
 
-  function setBusy(busy){
-    startBtn.disabled = busy;
-    sendBtn.disabled = busy;
-    startBtn.style.opacity = busy ? 0.6 : 1;
-    sendBtn.style.opacity = busy ? 0.6 : 1;
+const saveMetaBtn = $("saveMetaBtn");
+const clearMetaBtn = $("clearMetaBtn");
+
+const copyBtn = $("copyBtn");
+const clearBtn = $("clearBtn");
+
+const datePicker = $("datePicker");
+const loadByDateBtn = $("loadByDateBtn");
+const loadYesterdayBtn = $("loadYesterdayBtn");
+const loadBeforeYesterdayBtn = $("loadBeforeYesterdayBtn");
+const sessionListEl = $("sessionList");
+const newSessionBtn = $("newSessionBtn");
+const deleteSessionBtn = $("deleteSessionBtn");
+
+/** =======================
+ *  4) 会话管理
+ *  ======================= */
+function todayStr(d=new Date()){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function shiftDate(days){
+  const d = new Date();
+  d.setDate(d.getDate()+days);
+  return todayStr(d);
+}
+function getSessions(){
+  try { return JSON.parse(localStorage.getItem(LS_SESSIONS) || "{}"); } catch { return {}; }
+}
+function setSessions(obj){
+  localStorage.setItem(LS_SESSIONS, JSON.stringify(obj));
+}
+function getCurrentDate(){
+  return localStorage.getItem(LS_CURRENT_DATE) || todayStr();
+}
+function setCurrentDate(ds){
+  localStorage.setItem(LS_CURRENT_DATE, ds);
+  sessionDateText.textContent = ds;
+  datePicker.value = ds;
+}
+function loadSession(ds){
+  const sessions = getSessions();
+  const s = sessions[ds];
+  logEl.textContent = s?.log || "";
+  setCurrentDate(ds);
+  renderSessionList();
+  toast(`已加载会话：${ds}`);
+}
+function saveSession(ds){
+  const sessions = getSessions();
+  sessions[ds] = { log: logEl.textContent || "", updatedAt: Date.now() };
+  setSessions(sessions);
+  renderSessionList();
+}
+function deleteSession(ds){
+  const sessions = getSessions();
+  delete sessions[ds];
+  setSessions(sessions);
+  renderSessionList();
+}
+  function renderSessionList(){
+  const sessions = getSessions();
+  const keys = Object.keys(sessions).sort((a,b)=> (sessions[b].updatedAt||0)-(sessions[a].updatedAt||0));
+  if(!keys.length){ sessionListEl.textContent = "暂无历史"; return; }
+  sessionListEl.innerHTML = keys.map(k=>{
+    const t = new Date(sessions[k].updatedAt||Date.now()).toLocaleString();
+    return `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin:6px 0;">
+      <button class="btn3" style="padding:8px 10px;border-radius:10px;" onclick="window.__load('${k}')">${k}</button>
+      <span style="opacity:.7;font-size:12px;">更新：${t}</span>
+    </div>`;
+  }).join("");
+}
+window.__load = (k)=>loadSession(k);
+
+/** =======================
+ *  5) 元信息（人设/人群）
+ *  ======================= */
+function loadMeta(){
+  try{
+    const meta = JSON.parse(localStorage.getItem(LS_META) || "{}");
+    personaEl.value = meta.persona || "";
+    audienceEl.value = meta.audience || "";
+  }catch{}
+}
+function saveMeta(){
+  localStorage.setItem(LS_META, JSON.stringify({
+    persona: personaEl.value || "",
+    audience: audienceEl.value || ""
+  }));
+  toast("已保存：人设/人群");
+}
+function clearMeta(){
+  localStorage.removeItem(LS_META);
+  personaEl.value = "";
+  audienceEl.value = "";
+  toast("已清空：人设/人群");
+}
+
+/** =======================
+ *  6) 日志输出（永久固定展示：只追加不覆盖）
+ *  ======================= */
+function appendLog(text){
+  const now = new Date().toLocaleTimeString();
+  const block = `\n\n【${now}】\n${text}\n`;
+  logEl.textContent = (logEl.textContent || "") + block;
+  saveSession(getCurrentDate());
+  // 自动滚动到最新
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function toast(msg){
+  statusPill.textContent = "状态：" + msg;
+}
+
+/** =======================
+ *  7) 构造给 AI 的 Prompt（带历史 + 人设 + 人群）
+ *  ======================= */
+function buildPrompt(currentInput){
+  const ds = getCurrentDate();
+  const sessions = getSessions();
+  const historyText = sessions[ds]?.log ? sessions[ds].log.slice(-8000) : ""; // 控制长度，避免太大
+  const persona = personaEl.value?.trim() || "（未填写）";
+  const audience = audienceEl.value?.trim() || "（未填写）";
+
+  return `
+你是“直播复盘官”。你要对主播的本场直播做复盘，并输出可执行的改进方案。
+
+【永久信息】
+- 我的⼈设：${persona}
+- 核心消费人群：${audience}
+
+【要求】
+1) 输出结构必须包含：
+- 【开场控场】
+- 【数据确认】
+- 【问题判断】
+- 【唯一优化动作】（只给 1 个、最关键、下一场立刻能做的动作）
+- 【粉丝维护策略】（必须贴合“我的人设 + 核心消费人群”，保持边界感和偶像感，拒绝过度亲密话术；给 5 条可直接照念的维护句式 + 3 条禁忌话术）
+2) 若存在历史聊天记录，请结合历史与本场数据，做“连贯分析”（指出延续问题/改善点）。
+3) 语言：中文，短句，直接，强调可执行。
+
+【历史聊天记录（可能为空）】
+${historyText || "（无）"}
+
+【本场直播数据/素材】
+${currentInput}
+`.trim();
+}
+
+/** =======================
+ *  8) 调 Dify Workflow
+ *  ======================= */
+async function callDify(promptText){
+  const payload = {
+    inputs: { query: promptText },
+    response_mode: "blocking",
+    user: "mobile-user"
+  };
+
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + API_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const raw = await res.text();
+  if(!res.ok){
+    throw new Error(`HTTP ${res.status}\n${raw}`);
+  }
+ // Dify workflow 常见返回：{ data: { outputs: { text: "..." } } }
+  let json;
+  try { json = JSON.parse(raw); } catch { throw new Error("返回不是JSON：" + raw); }
+
+  const out =
+    json?.data?.outputs?.text ||
+    json?.answer ||
+    json?.data?.answer ||
+    "";
+
+  if(!out) throw new Error("接口无输出字段（请检查 Dify workflow 的输出变量名是否为 text）。\n" + raw);
+
+  return out;
+}
+
+/** =======================
+ *  9) 文字复盘
+ *  ======================= */
+async function sendText(){
+  const input = inputTextEl.value.trim();
+  if(!input){ toast("请先输入本场数据"); return; }
+
+  appendLog("你说（文字）：\n" + input);
+  toast("分析中…");
+
+  try{
+    const prompt = buildPrompt(input);
+    const out = await callDify(prompt);
+    appendLog("复盘结果：\n" + out);
+    toast("完成");
+    // iOS 需要用户手势触发播放，且很多场景不允许自动播报；这里不强制 TTS，避免“无声/卡住”
+  }catch(e){
+    appendLog("请求失败：\n" + (e?.message || e));
+    toast("失败（看日志）");
+  }
+}
+
+/** =======================
+ *  10) 语音识别（安卓 Chrome 可用；iOS 基本不可用）
+ *  ======================= */
+let recognition = null;
+let listening = false;
+
+function startVoice(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    appendLog("提示：当前浏览器不支持语音识别。请用“发送文字复盘”。");
+    toast("不支持语音识别");
+    return;
   }
 
-  async function callDify(text){
-    if(!text || !text.trim()) return;
-    setBusy(true);
-    log("你说：\n" + text + "\n\n分析中…");
+  recognition = new SpeechRecognition();
+  recognition.lang = "zh-CN";
+  recognition.interimResults = false;
+  recognition.continuous = false; // 一次一句，稳定
 
-    try{
-      const url = (MODE === "workflow") ? WORKFLOW_URL : CHAT_URL;
+  listening = true;
+  voiceBtn.disabled = true;
+  stopBtn.disabled = false;
+  toast("监听中…请说完停顿");
 
-      // 两种模式的 body 不一样
-      const body = (MODE === "workflow")
-        ? {
-            inputs: { query: text },
-            response_mode: "blocking",
-            user: "mobile-user"
-          }
-        : {
-            inputs: {},
-            query: text,
-            response_mode: "blocking",
-            user: "mobile-user"
-          };
-
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + API_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      const data = await resp.json();
-
-      if(!resp.ok){
-        // 把后端报错直接打出来，方便你定位
-        log("请求失败（这就是一直卡“分析中”的原因）：\nHTTP " + resp.status + "\n" + JSON.stringify(data, null, 2));
-        return;
-      }
-
-      // 解析返回字段：chat 是 data.answer；workflow 常见是 data.data.outputs
-      const answer =
-        (MODE === "workflow")
-          ? (data?.data?.outputs?.text || data?.data?.outputs?.answer || JSON.stringify(data, null, 2))
-          : (data?.answer || JSON.stringify(data, null, 2));
-
-      log("复盘结果：\n\n" + answer);
-
-      // 语音播报（移动端可能要求先点一下屏幕才允许播放）
-      try{
-        const u = new SpeechSynthesisUtterance(answer);
-        u.lang = "zh-CN";
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(u);
-      }catch(e){ /* 忽略播报失败 */ }
-
-    }catch(err){
-      log("前端报错：\n" + (err?.message || err));
-    }finally{
-      setBusy(false);
+  recognition.onresult = (event) => {
+    const text = event.results?.[0]?.[0]?.transcript || "";
+    if(text){
+      inputTextEl.value = text;
+      appendLog("你说（语音识别）：\n" + text);
+      // 自动发起复盘（你不想自动也行，把下一行注释掉）
+      sendText();
+    }else{
+      appendLog("语音识别未获得文本。");
     }
+  };
+
+  recognition.onerror = (e) => {
+    appendLog("语音识别错误：\n" + JSON.stringify(e));
+  };
+
+  recognition.onend = () => {
+    listening = false;
+    voiceBtn.disabled = false;
+    stopBtn.disabled = true;
+    toast("已停止监听");
+  };
+
+  recognition.start();
+}
+
+function stopVoice(){
+  try{ recognition?.stop(); }catch{}
+}
+
+/** =======================
+ *  11) 绑定事件
+ *  ======================= */
+saveMetaBtn.onclick = saveMeta;
+clearMetaBtn.onclick = clearMeta;
+
+sendTextBtn.onclick = sendText;
+voiceBtn.onclick = startVoice;
+stopBtn.onclick = stopVoice;
+
+copyBtn.onclick = async () => {
+  const text = logEl.textContent || "";
+  if(!text){ toast("没有可复制内容"); return; }
+  await navigator.clipboard.writeText(text);
+  toast("已复制");
+};
+clearBtn.onclick = () => { logEl.textContent = ""; toast("已清空本页显示"); };
+
+loadByDateBtn.onclick = () => loadSession(datePicker.value || todayStr());
+loadYesterdayBtn.onclick = () => loadSession(shiftDate(-1));
+loadBeforeYesterdayBtn.onclick = () => loadSession(shiftDate(-2));
+newSessionBtn.onclick = () => {
+  const ds = todayStr();
+  // 不覆盖：如果今天已有，就提示；你也可以手动选日期新建
+  const sessions = getSessions();
+  if(sessions[ds]){
+    toast("今天会话已存在（可直接加载）");
+    loadSession(ds);
+    return;
   }
-
-  function startRecognition(){
-    // 关键：iOS 基本不支持 Web Speech Recognition
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if(!SR){
-      alert("当前浏览器不支持语音识别（iPhone/iOS基本都会这样）。用下面“文字输入”发给我就行。");
-      textInput.focus();
-      return;
-    }
-
-    setBusy(true);
-    log("正在监听…请说话。说完会自动停。");
-
-    const recognition = new SR();
-    recognition.lang = "zh-CN";
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onresult = async (event) => {
-      const text = event.results[0][0].transcript;
-      await callDify(text);
-    };
-
-    recognition.onerror = (e) => {
-      log("语音识别失败：\n" + (e?.error || "unknown"));
-      setBusy(false);
-    };
-
-    recognition.onend = () => {
-      // 如果用户没说出结果，会走到这里；别卡死按钮
-      if(!resultEl.innerText.includes("复盘结果") && !resultEl.innerText.includes("请求失败") && !resultEl.innerText.includes("前端报错")){
-        log("已停止监听（可能你没说话/权限问题）。你也可以用下面文字输入。");
-      }
-      setBusy(false);
-    };
-
-    recognition.start();
+  logEl.textContent = "";
+  setCurrentDate(ds);
+  saveSession(ds);
+  toast("已新建今天会话");
+};
+deleteSessionBtn.onclick = () => {
+  const ds = getCurrentDate();
+  if(confirm(`确认删除会话 ${ds} 吗？此操作不可恢复。`)){
+    deleteSession(ds);
+    logEl.textContent = "";
+    toast("已删除");
   }
+};
 
-  // 安卓上 click 有时不触发，补 touchend
-  startBtn.addEventListener("click", startRecognition);
-  startBtn.addEventListener("touchend", (e)=>{ e.preventDefault(); startRecognition(); });
-
-  sendBtn.addEventListener("click", ()=> callDify(textInput.value));
-  sendBtn.addEventListener("touchend", (e)=>{ e.preventDefault(); callDify(textInput.value); });
-
-  log("准备就绪。点“开始语音复盘”，或直接用下面文字输入。");
+/** =======================
+ *  12) 初始化
+ *  ======================= */
+(function init(){
+  loadMeta();
+  const ds = getCurrentDate();
+  setCurrentDate(ds);
+  loadSession(ds); // 自动加载当前日期
+  renderSessionList();
+  toast("就绪");
+})();
 </script>
 </body>
 </html>
-
-
 
 
 
