@@ -1,145 +1,168 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>复盘官</title>
-<style>
-body { font-family: Arial; background:#111; color:#fff; padding:20px; }
-button { padding:15px; font-size:18px; margin-top:20px; }
-#result { margin-top:20px; white-space: pre-wrap; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>直播复盘官</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0b0b0b; color:#fff; padding:18px;}
+    button{font-size:16px; padding:10px 14px; border-radius:10px; border:0;}
+    .box{margin-top:14px; white-space:pre-wrap; line-height:1.6;}
+    input{width:100%; font-size:16px; padding:10px; border-radius:10px; border:1px solid #333; background:#111; color:#fff; margin-top:10px;}
+    .hint{opacity:.75; font-size:13px; margin-top:8px;}
+  </style>
 </head>
 <body>
+  <h2>直播复盘官</h2>
 
-<h2>直播复盘官</h2>
+  <button id="startBtn">开始语音复盘</button>
+  <div class="hint">如果你用的是 iPhone（或 iOS 的 Chrome），大概率不支持语音识别，会自动切到“文字输入”。</div>
 
-<button onclick="startRecognition()"> 开始语音复盘</button>
+  <input id="textInput" placeholder="（备选）直接打字：例如 今天3小时 峰值60 收入370 菜单xx 空刷xx" />
+  <button id="sendBtn" style="margin-top:10px;">发送文字复盘</button>
 
-<div id="result"></div>
+  <div id="result" class="box"></div>
 
 <script>
-const API_KEY = "app-PqaerVjymIzMfj6bRV4WP4XZ";
-const API_URL = "https://api.dify.ai/v1/chat-messages";
+  // ====== 你只需要改这里两行 ======
+  const API_KEY = "把你的Dify API Key粘贴在这里";
+  const MODE = "chat"; // 选 "chat" 或 "workflow"
+  // =================================
 
+  // chat 模式接口（对话型应用 / Chat App）
+  const CHAT_URL = "https://api.dify.ai/v1/chat-messages";
+  // workflow 模式接口（工作流应用 / Workflow App）
+  const WORKFLOW_URL = "https://api.dify.ai/v1/workflows/run";
 
-function pickAnswer(data) {
-  // 兼容多种返回结构
-  return (
-    data?.answer ||
-    data?.data?.outputs?.text ||
-    data?.data?.outputs?.result ||
-    data?.data?.outputs?.output ||
-    data?.data?.outputs?.response ||
-    data?.data?.outputs?.final ||
-    data?.data?.outputs?.content ||
-    ""
-  );
-}
+  const $ = (id) => document.getElementById(id);
+  const startBtn = $("startBtn");
+  const sendBtn  = $("sendBtn");
+  const resultEl = $("result");
+  const textInput = $("textInput");
 
-function speakText(text) {
-  try {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "zh-CN";
-    u.rate = 1;
-    u.pitch = 1;
-    window.speechSynthesis.speak(u);
-  } catch (e) {}
-}
+  function log(msg){ resultEl.innerText = msg; }
+  function append(msg){ resultEl.innerText += "\n" + msg; }
 
-async function runDify(text) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 10000); // 10秒超时
-
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer " + API_KEY,
-      "Content-Type": "application/json"
-    },
-   body: JSON.stringify({
-  inputs: {},
-  query: text,
-  response_mode: "blocking",
-  conversation_id: "",
-  user: "mobile-user"
-})
-    signal: controller.signal
-  }).finally(() => clearTimeout(t));
-
-  const raw = await res.text(); // 先拿原始文本，方便看报错
-  let data = {};
-  try { data = JSON.parse(raw); } catch (e) {}
-
-  if (!res.ok) {
-    // 把状态码 + 原始返回都显示出来
-    throw new Error(`HTTP ${res.status}\n${raw || "(empty)"}`);
+  function setBusy(busy){
+    startBtn.disabled = busy;
+    sendBtn.disabled = busy;
+    startBtn.style.opacity = busy ? 0.6 : 1;
+    sendBtn.style.opacity = busy ? 0.6 : 1;
   }
 
-  return { data, raw };
-}
+  async function callDify(text){
+    if(!text || !text.trim()) return;
+    setBusy(true);
+    log("你说：\n" + text + "\n\n分析中…");
 
-function ensureSpeakButton(answer) {
-  // iOS 很可能需要“点一下”才肯出声，所以加个按钮
-  let btn = document.getElementById("speakBtn");
-  if (!btn) {
-    btn = document.createElement("button");
-    btn.id = "speakBtn";
-    btn.innerText = " 播放语音";
-    btn.style.marginTop = "12px";
-    btn.onclick = () => speakText(answer);
-    document.getElementById("result").appendChild(document.createElement("br"));
-    document.getElementById("result").appendChild(btn);
-  } else {
-    btn.onclick = () => speakText(answer);
-  }
-}
+    try{
+      const url = (MODE === "workflow") ? WORKFLOW_URL : CHAT_URL;
 
-function startRecognition() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert("当前浏览器不支持语音识别：请用 Android Chrome。iPhone 语音识别常不稳定。");
-    return;
-  }
+      // 两种模式的 body 不一样
+      const body = (MODE === "workflow")
+        ? {
+            inputs: { query: text },
+            response_mode: "blocking",
+            user: "mobile-user"
+          }
+        : {
+            inputs: {},
+            query: text,
+            response_mode: "blocking",
+            user: "mobile-user"
+          };
 
-  const recognition = new SpeechRecognition();
-  recognition.lang = "zh-CN";
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
 
-  recognition.onresult = async (event) => {
-    const text = event.results[0][0].transcript;
-    document.getElementById("result").innerText = "你说：\n" + text + "\n\n分析中...（最多10秒）";
+      const data = await resp.json();
 
-    try {
-      const { data, raw } = await runDify(text);
-      const answer = pickAnswer(data);
-
-      if (!answer) {
-        document.getElementById("result").innerText =
-          "拿到了返回，但没找到答案字段。\n\n原始返回：\n" + raw;
+      if(!resp.ok){
+        // 把后端报错直接打出来，方便你定位
+        log("请求失败（这就是一直卡“分析中”的原因）：\nHTTP " + resp.status + "\n" + JSON.stringify(data, null, 2));
         return;
       }
 
-      document.getElementById("result").innerText = "复盘结果：\n\n" + answer;
+      // 解析返回字段：chat 是 data.answer；workflow 常见是 data.data.outputs
+      const answer =
+        (MODE === "workflow")
+          ? (data?.data?.outputs?.text || data?.data?.outputs?.answer || JSON.stringify(data, null, 2))
+          : (data?.answer || JSON.stringify(data, null, 2));
 
-      // Android一般可直接播；iOS不一定，所以同时给按钮
-      speakText(answer);
-      ensureSpeakButton(answer);
+      log("复盘结果：\n\n" + answer);
 
-    } catch (err) {
-      document.getElementById("result").innerText =
-        "请求失败（这就是你一直卡“分析中”的原因）：\n\n" + (err?.message || err);
+      // 语音播报（移动端可能要求先点一下屏幕才允许播放）
+      try{
+        const u = new SpeechSynthesisUtterance(answer);
+        u.lang = "zh-CN";
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      }catch(e){ /* 忽略播报失败 */ }
+
+    }catch(err){
+      log("前端报错：\n" + (err?.message || err));
+    }finally{
+      setBusy(false);
     }
-  };
+  }
 
-  recognition.onerror = (e) => {
-    document.getElementById("result").innerText = "语音识别错误：\n" + (e?.error || JSON.stringify(e));
-  };
+  function startRecognition(){
+    // 关键：iOS 基本不支持 Web Speech Recognition
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){
+      alert("当前浏览器不支持语音识别（iPhone/iOS基本都会这样）。用下面“文字输入”发给我就行。");
+      textInput.focus();
+      return;
+    }
 
-  recognition.start();
-}
+    setBusy(true);
+    log("正在监听…请说话。说完会自动停。");
+
+    const recognition = new SR();
+    recognition.lang = "zh-CN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = async (event) => {
+      const text = event.results[0][0].transcript;
+      await callDify(text);
+    };
+
+    recognition.onerror = (e) => {
+      log("语音识别失败：\n" + (e?.error || "unknown"));
+      setBusy(false);
+    };
+
+    recognition.onend = () => {
+      // 如果用户没说出结果，会走到这里；别卡死按钮
+      if(!resultEl.innerText.includes("复盘结果") && !resultEl.innerText.includes("请求失败") && !resultEl.innerText.includes("前端报错")){
+        log("已停止监听（可能你没说话/权限问题）。你也可以用下面文字输入。");
+      }
+      setBusy(false);
+    };
+
+    recognition.start();
+  }
+
+  // 安卓上 click 有时不触发，补 touchend
+  startBtn.addEventListener("click", startRecognition);
+  startBtn.addEventListener("touchend", (e)=>{ e.preventDefault(); startRecognition(); });
+
+  sendBtn.addEventListener("click", ()=> callDify(textInput.value));
+  sendBtn.addEventListener("touchend", (e)=>{ e.preventDefault(); callDify(textInput.value); });
+
+  log("准备就绪。点“开始语音复盘”，或直接用下面文字输入。");
 </script>
 </body>
 </html>
+
+
 
 
 
