@@ -19,7 +19,7 @@ button { padding:15px; font-size:18px; margin-top:20px; }
 
 <script>
 const API_KEY = "app-PqaerVjymIzMfj6bRV4WP4XZ";
-const API_URL = "https://api.dify.ai/v1/workflows/run";
+const API_URL = "https://api.dify.ai/v1/chat-messages";
 
 
 function pickAnswer(data) {
@@ -57,11 +57,13 @@ async function runDify(text) {
       "Authorization": "Bearer " + API_KEY,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      inputs: { query: text },
-      response_mode: "blocking",
-      user: "mobile-user"
-    }),
+   body: JSON.stringify({
+  inputs: {},
+  query: text,
+  response_mode: "blocking",
+  conversation_id: "",
+  user: "mobile-user"
+})
     signal: controller.signal
   }).finally(() => clearTimeout(t));
 
@@ -138,5 +140,6 @@ function startRecognition() {
 </script>
 </body>
 </html>
+
 
 
